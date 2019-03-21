@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.flipkart.rome</groupId>
         <artifactId>masquerade</artifactId>
-        <version>0.2.0-SNAPSHOT</version>
+        <version>0.2.1.OPT</version>
     </parent>
 
     <artifactId>masquerade-sample</artifactId>
@@ -41,7 +41,7 @@
             <plugin>
                 <groupId>com.flipkart.rome</groupId>
                 <artifactId>masquerade-maven-plugin</artifactId>
-                <version>0.2.0-SNAPSHOT</version>
+                <version>0.2.1.OPT</version>
                 <configuration>
                     <configurationClass>com.flipkart.masquerade.test.TestConfig</configurationClass>
                     <targetFile>${project.build.sourceDirectory}</targetFile>

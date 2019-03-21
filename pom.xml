@@ -6,7 +6,7 @@
 
     <groupId>com.flipkart.rome</groupId>
     <artifactId>masquerade</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.2.1.OPT</version>
     <packaging>pom</packaging>
 
     <name>Masquerade</name>
@@ -114,10 +114,15 @@
     </repositories>
 
     <distributionManagement>
+        <snapshotRepository>
+            <id>fk-art-snapshot</id>
+            <name>libs-snapshot</name>
+            <url>http://artifactory.fkinternal.com/artifactory/v1.0/artifacts/libs-snapshots-local</url>
+        </snapshotRepository>
         <repository>
-            <id>clojars</id>
-            <name>Clojars repository</name>
-            <url>https://clojars.org/repo</url>
+            <id>fk-art-release</id>
+            <name>libs-rel</name>
+            <url>http://artifactory.fkinternal.com/artifactory/v1.0/artifacts/libs-release-local</url>
         </repository>
     </distributionManagement>
 </project>

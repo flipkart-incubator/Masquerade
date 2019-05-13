@@ -56,6 +56,8 @@ public class RepositoryProcessor {
         cloakBuilder.addField(FieldSpec
                 .builder(className, SET_PARAMETER, Modifier.PRIVATE, Modifier.FINAL)
                 .initializer("new $T()", className).build());
+        cloakBuilder.addInitializerBlock(CodeBlock.builder()
+                .addStatement("$L.initVCMap()", SET_PARAMETER).build());
         cloakBuilder.addMethod(MethodSpec
                 .methodBuilder(getRepositoryGetter()).returns(className)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
@@ -90,7 +92,10 @@ public class RepositoryProcessor {
             }
         }
 
-        repositoryBuilder.addInitializerBlock(initializer.build());
+        repositoryBuilder.addMethod(MethodSpec
+                .methodBuilder("initVCMap").returns(TypeName.VOID)
+                .addModifiers(Modifier.PUBLIC)
+                .addCode(initializer.build()).build());
         return repositoryBuilder.build();
     }
 

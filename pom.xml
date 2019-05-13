@@ -6,7 +6,7 @@
 
     <groupId>com.flipkart.rome</groupId>
     <artifactId>masquerade</artifactId>
-    <version>0.2.1.OPT</version>
+    <version>0.2.2.OPT</version>
     <packaging>pom</packaging>
 
     <name>Masquerade</name>

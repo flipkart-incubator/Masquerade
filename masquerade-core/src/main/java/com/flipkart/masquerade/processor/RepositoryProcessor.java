@@ -19,6 +19,7 @@ package com.flipkart.masquerade.processor;
 import com.flipkart.masquerade.Configuration;
 import com.flipkart.masquerade.processor.type.ToStringInitializationProcessor;
 import com.flipkart.masquerade.rule.Rule;
+import com.flipkart.masquerade.serialization.ChainedCodeBlockBuilder;
 import com.flipkart.masquerade.util.EntryType;
 import com.flipkart.masquerade.util.RepositoryEntry;
 import com.squareup.javapoet.*;
@@ -34,6 +35,9 @@ import static com.flipkart.masquerade.util.Strings.SET_PARAMETER;
  * Created by shrey.garg on 24/07/17.
  */
 public class RepositoryProcessor {
+
+    private static final String INIT_VC_MAP_METHOD_NAME = "initVersionControlMap";
+
     private final Configuration configuration;
     private final TypeSpec.Builder cloakBuilder;
 
@@ -57,7 +61,7 @@ public class RepositoryProcessor {
                 .builder(className, SET_PARAMETER, Modifier.PRIVATE, Modifier.FINAL)
                 .initializer("new $T()", className).build());
         cloakBuilder.addInitializerBlock(CodeBlock.builder()
-                .addStatement("$L.initVCMap()", SET_PARAMETER).build());
+                .addStatement("$L.$L()", SET_PARAMETER, INIT_VC_MAP_METHOD_NAME).build());
         cloakBuilder.addMethod(MethodSpec
                 .methodBuilder(getRepositoryGetter()).returns(className)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
@@ -69,107 +73,107 @@ public class RepositoryProcessor {
         final TypeSpec.Builder repositoryBuilder = TypeSpec.classBuilder(SET_CLASS);
         repositoryBuilder.addModifiers(Modifier.PUBLIC);
 
-        final CodeBlock.Builder initializer = CodeBlock.builder();
+        final ChainedCodeBlockBuilder initializer = new ChainedCodeBlockBuilder(repositoryBuilder);
 
         for (Rule rule : configuration.getRules()) {
             /* Creates a Map of Class name and Mask */
             mapProcessor.addMap(rule, repositoryBuilder);
 
-            handleEnumEntry(repositoryBuilder, rule, initializer);
+            handleEnumEntry(repositoryBuilder, rule);
             handlePrimitiveEntries(repositoryBuilder, rule, initializer);
             handleStringEntry(repositoryBuilder, rule, initializer);
             handleToStringEntries(repositoryBuilder, rule, initializer);
             handleProcessedEntries(repositoryBuilder, initializer, repositoryEntries);
-            handleMapEntry(repositoryBuilder, rule, initializer);
-            handleCollectionEntry(repositoryBuilder, rule, initializer);
-            handleObjectArrayEntry(repositoryBuilder, rule, initializer);
+            handleMapEntry(repositoryBuilder, rule);
+            handleCollectionEntry(repositoryBuilder, rule);
+            handleObjectArrayEntry(repositoryBuilder, rule);
             if (configuration.isNativeSerializationEnabled()) {
-                handlePrimitiveArrayEntries(repositoryBuilder, rule, initializer);
-                handleCharacterPrimitiveArrayEntries(repositoryBuilder, rule, initializer);
+                handlePrimitiveArrayEntries(repositoryBuilder, rule);
+                handleCharacterPrimitiveArrayEntries(repositoryBuilder, rule);
                 handleNumericalEntries(repositoryBuilder, rule, initializer);
             } else {
-                handleNoOpEntry(repositoryBuilder, rule, initializer);
+                handleNoOpEntry(repositoryBuilder, rule);
             }
         }
 
         repositoryBuilder.addMethod(MethodSpec
-                .methodBuilder("initVCMap").returns(TypeName.VOID)
+                .methodBuilder(INIT_VC_MAP_METHOD_NAME).returns(TypeName.VOID)
                 .addModifiers(Modifier.PUBLIC)
                 .addCode(initializer.build()).build());
         return repositoryBuilder.build();
     }
 
-    private void handleEnumEntry(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
-        handleEntry(repositoryBuilder, initializer,
+    private void handleEnumEntry(TypeSpec.Builder repositoryBuilder, Rule rule) {
+        handleEntry(repositoryBuilder,
                 getEnumImplementationClass(configuration, rule), getEnumVariableName(rule));
     }
 
-    private void handleNoOpEntry(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
-        handleEntry(repositoryBuilder, initializer,
+    private void handleNoOpEntry(TypeSpec.Builder repositoryBuilder, Rule rule) {
+        handleEntry(repositoryBuilder,
                 getNoOpImplementationClass(configuration, rule), getNoOpVariableName(rule));
     }
 
-    private void handleToStringEntries(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
-        handleEntry(repositoryBuilder, initializer,
+    private void handleToStringEntries(TypeSpec.Builder repositoryBuilder, Rule rule, ChainedCodeBlockBuilder initializer) {
+        handleEntry(repositoryBuilder,
                 getToStringImplementationClass(configuration, rule), getToStringVariableName(rule));
 
         toStringInitializationProcessor.generateToStringEntries(rule)
                 .forEach(re -> initializer.addStatement("$L.put($S, $L)", rule.getName(), re.getClazz().getName(), getToStringVariableName(rule)));
     }
 
-    private void handlePrimitiveEntries(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
+    private void handlePrimitiveEntries(TypeSpec.Builder repositoryBuilder, Rule rule, ChainedCodeBlockBuilder initializer) {
         for (Class<?> wrapperType : getWrapperTypes()) {
-            handleEntry(repositoryBuilder, initializer,
+            handleEntry(repositoryBuilder,
                     getPrimitiveImplementationClass(configuration, rule, wrapperType), getPrimitiveVariableName(rule, wrapperType));
 
             initializer.addStatement("$L.put($S, $L)", rule.getName(), wrapperType.getName(), getPrimitiveVariableName(rule, wrapperType));
         }
     }
 
-    private void handleStringEntry(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
-        handleEntry(repositoryBuilder, initializer,
+    private void handleStringEntry(TypeSpec.Builder repositoryBuilder, Rule rule, ChainedCodeBlockBuilder initializer) {
+        handleEntry(repositoryBuilder,
                 getStringImplementationClass(configuration, rule), getStringVariableName(rule));
 
         initializer.addStatement("$L.put($S, $L)", rule.getName(), String.class.getName(), getStringVariableName(rule));
     }
 
-    private void handleMapEntry(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
-        handleEntry(repositoryBuilder, initializer,
+    private void handleMapEntry(TypeSpec.Builder repositoryBuilder, Rule rule) {
+        handleEntry(repositoryBuilder,
                 getMapImplementationClass(configuration, rule), getMapVariableName(rule));
     }
 
-    private void handleCollectionEntry(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
-        handleEntry(repositoryBuilder, initializer,
+    private void handleCollectionEntry(TypeSpec.Builder repositoryBuilder, Rule rule) {
+        handleEntry(repositoryBuilder,
                 getCollectionImplementationClass(configuration, rule), getCollectionVariableName(rule));
     }
 
-    private void handleObjectArrayEntry(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
-        handleEntry(repositoryBuilder, initializer,
+    private void handleObjectArrayEntry(TypeSpec.Builder repositoryBuilder, Rule rule) {
+        handleEntry(repositoryBuilder,
                 getObjectArrayImplementationClass(configuration, rule), getObjectArrayVariableName(rule));
     }
 
-    private void handlePrimitiveArrayEntries(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
+    private void handlePrimitiveArrayEntries(TypeSpec.Builder repositoryBuilder, Rule rule) {
         for (Class<?> primitiveType : getPrimitivesTypes()) {
-            handleEntry(repositoryBuilder, initializer,
+            handleEntry(repositoryBuilder,
                     getPrimitiveArrayImplementationClass(configuration, rule, primitiveType), getPrimitiveArrayVariableName(rule, primitiveType));
         }
     }
 
-    private void handleCharacterPrimitiveArrayEntries(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
-        handleEntry(repositoryBuilder, initializer,
+    private void handleCharacterPrimitiveArrayEntries(TypeSpec.Builder repositoryBuilder, Rule rule) {
+        handleEntry(repositoryBuilder,
                 getPrimitiveArrayImplementationClass(configuration, rule, Character.TYPE), getPrimitiveArrayVariableName(rule, Character.TYPE));
     }
 
-    private void handleNumericalEntries(TypeSpec.Builder repositoryBuilder, Rule rule, CodeBlock.Builder initializer) {
+    private void handleNumericalEntries(TypeSpec.Builder repositoryBuilder, Rule rule, ChainedCodeBlockBuilder initializer) {
         for (Class<?> wrapperType : configuration.numericalSerializableClasses()) {
-            handleEntry(repositoryBuilder, initializer,
+            handleEntry(repositoryBuilder,
                     getPrimitiveImplementationClass(configuration, rule, wrapperType), getPrimitiveVariableName(rule, wrapperType));
 
             initializer.addStatement("$L.put($S, $L)", rule.getName(), wrapperType.getName(), getPrimitiveVariableName(rule, wrapperType));
         }
     }
 
-    private void handleProcessedEntries(TypeSpec.Builder repositoryBuilder, CodeBlock.Builder initializer, List<RepositoryEntry> repositoryEntries) {
+    private void handleProcessedEntries(TypeSpec.Builder repositoryBuilder, ChainedCodeBlockBuilder initializer, List<RepositoryEntry> repositoryEntries) {
         for (RepositoryEntry entry : repositoryEntries) {
             if (entry.getEntryType() == EntryType.NEW) {
                 String implName = getImplementationName(entry.getRule(), entry.getClazz());
@@ -177,7 +181,7 @@ public class RepositoryProcessor {
                 String variableName = getVariableName(cloakName);
                 /* Refer to the added field while adding to map */
                 initializer.addStatement("$L.put($S, $L)", entry.getRule().getName(), entry.getClazz().getName(), variableName);
-                handleEntry(repositoryBuilder, initializer, cloakName, variableName);
+                handleEntry(repositoryBuilder, cloakName, variableName);
             } else if (entry.getEntryType() == EntryType.ENUM) {
                 initializer.addStatement("$L.put($S, $L)", entry.getRule().getName(), entry.getClazz().getName(), getEnumVariableName(entry.getRule()));
             } else if (entry.getEntryType() == EntryType.NoOP) {
@@ -186,7 +190,7 @@ public class RepositoryProcessor {
         }
     }
 
-    private void handleEntry(TypeSpec.Builder repositoryBuilder, CodeBlock.Builder initializer, ClassName className, String variableName) {
+    private void handleEntry(TypeSpec.Builder repositoryBuilder, ClassName className, String variableName) {
         FieldSpec fieldSpec = FieldSpec.builder(className, variableName, Modifier.PRIVATE)
                 .initializer("new $T()", className).build();
         repositoryBuilder.addField(fieldSpec);

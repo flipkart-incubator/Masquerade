@@ -35,27 +35,23 @@ import java.util.List;
  */
 public class ChainedCodeBlockBuilder {
 
-    private static final int STATEMENT_LIMIT = 1000;
-    private static final String DEFAULT_METHOD_PREFIX = "chainedMethod";
-
     private int nStatements;
     private List<CodeBlock.Builder> initializers;
     private CodeBlock.Builder currentInitializer;
     private String methodPrefix;
     private TypeSpec.Builder owningClass;
-
-    public ChainedCodeBlockBuilder(TypeSpec.Builder owningClass){
-        this(DEFAULT_METHOD_PREFIX, owningClass);
-    }
+    private int maxStatementsInMethod;
 
     /**
      *
      * @param methodPrefix The prefix to be used to generate method names for the chained method.
+     * @param maxStatementsInMethod The number of statements per chained method.
      * @param owningClass The class where the chained methods will be added.
      */
-    public ChainedCodeBlockBuilder(String methodPrefix, TypeSpec.Builder owningClass){
+    public ChainedCodeBlockBuilder(String methodPrefix, int maxStatementsInMethod, TypeSpec.Builder owningClass){
         this.methodPrefix = methodPrefix;
         this.owningClass = owningClass;
+        this.maxStatementsInMethod = maxStatementsInMethod;
 
         this.currentInitializer = CodeBlock.builder();
         this.initializers = new LinkedList<>();
@@ -64,7 +60,7 @@ public class ChainedCodeBlockBuilder {
 
     public void addStatement(String format, Object... args) {
 
-        if(nStatements > STATEMENT_LIMIT){
+        if(nStatements > maxStatementsInMethod){
             nStatements = 0;
             currentInitializer = CodeBlock.builder();
             initializers.add(currentInitializer);

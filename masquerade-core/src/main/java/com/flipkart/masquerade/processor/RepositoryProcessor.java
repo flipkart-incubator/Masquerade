@@ -73,7 +73,7 @@ public class RepositoryProcessor {
         final TypeSpec.Builder repositoryBuilder = TypeSpec.classBuilder(SET_CLASS);
         repositoryBuilder.addModifiers(Modifier.PUBLIC);
 
-        final ChainedCodeBlockBuilder initializer = new ChainedCodeBlockBuilder(repositoryBuilder);
+        final ChainedCodeBlockBuilder initializer = new ChainedCodeBlockBuilder(configuration.methodPrefixForChainedMethods(), configuration.maxStatementsInMethod(), repositoryBuilder);
 
         for (Rule rule : configuration.getRules()) {
             /* Creates a Map of Class name and Mask */

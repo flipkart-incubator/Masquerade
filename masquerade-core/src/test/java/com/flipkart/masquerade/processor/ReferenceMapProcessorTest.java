@@ -39,7 +39,7 @@ public class ReferenceMapProcessorTest {
             assertEquals(true, fieldSpec.isPresent());
             assertTrue(fieldSpec.get().hasModifier(Modifier.PRIVATE));
             assertTrue(fieldSpec.get().type instanceof ParameterizedTypeName);
-            assertEquals("new java.util.HashMap<>()", fieldSpec.get().initializer.toString());
+            assertEquals("trunk.getTestOne()", fieldSpec.get().initializer.toString());
 
             ParameterizedTypeName typeName = (ParameterizedTypeName) fieldSpec.get().type;
             assertEquals(2, typeName.typeArguments.size());

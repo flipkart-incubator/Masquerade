@@ -22,9 +22,11 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.flipkart.masquerade.Configuration;
+import com.flipkart.masquerade.rule.Rule;
 import com.flipkart.masquerade.serialization.FieldMeta;
 import com.flipkart.masquerade.serialization.SerializationProperty;
 import com.google.common.base.Defaults;
+import com.google.common.primitives.Primitives;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
@@ -49,7 +51,7 @@ public class SerializationOverrideProcessor extends OverrideProcessor {
 
     @Override
     protected void declareInitializeVariables(MethodSpec.Builder methodBuilder) {
-        methodBuilder.addStatement("$T $L = new $T($S)", StringBuilder.class, SERIALIZED_OBJECT, StringBuilder.class, "{");
+        methodBuilder.addStatement("$L.append($S)", SERIALIZED_OBJECT, "{");
     }
 
     @Override
@@ -134,12 +136,11 @@ public class SerializationOverrideProcessor extends OverrideProcessor {
 
     @Override
     protected void returns(MethodSpec.Builder methodBuilder) {
-        methodBuilder.beginControlFlow("if ($L.length() > 1)", SERIALIZED_OBJECT);
+        methodBuilder.beginControlFlow("if ($L.charAt($L.length() - 1) == ',')", SERIALIZED_OBJECT, SERIALIZED_OBJECT);
         methodBuilder.addStatement("$L.deleteCharAt($L.length() - 1)", SERIALIZED_OBJECT, SERIALIZED_OBJECT);
         methodBuilder.endControlFlow();
 
         methodBuilder.addStatement("$L.append($S)", SERIALIZED_OBJECT, "}");
-        methodBuilder.addStatement("return $L.toString()", SERIALIZED_OBJECT);
     }
 
     @Override
@@ -148,8 +149,38 @@ public class SerializationOverrideProcessor extends OverrideProcessor {
     }
 
     @Override
-    protected void recursiveStatement(MethodSpec.Builder methodBuilder, String getterName) {
-        methodBuilder.addStatement("$L.append($L.$L($L.$L(), $L))", SERIALIZED_OBJECT, CLOAK_PARAMETER, ENTRY_METHOD, OBJECT_PARAMETER, getterName, EVAL_PARAMETER);
+    protected void recursiveStatement(Rule rule, MethodSpec.Builder methodBuilder, Class<?> clazz, String getterName) {
+        if (clazz.isArray()) {
+            if (clazz.getComponentType().isPrimitive()) {
+                addRecursiveStatement(methodBuilder, getPrimitiveArrayVariableName(rule, clazz.getComponentType()), getterName);
+            } else {
+                addRecursiveStatement(methodBuilder, getObjectArrayVariableName(rule), getterName);
+            }
+        } else if (String.class.isAssignableFrom(clazz)) {
+            addRecursiveStatement(methodBuilder, getStringVariableName(rule), getterName);
+        } else if (Map.class.isAssignableFrom(clazz)) {
+            addRecursiveStatement(methodBuilder, getMapVariableName(rule), getterName);
+        } else if (Collection.class.isAssignableFrom(clazz)) {
+            addRecursiveStatement(methodBuilder, getCollectionVariableName(rule), getterName);
+        } else if (clazz.isPrimitive() || getWrapperTypes().contains(clazz)) {
+            addRecursiveStatement(methodBuilder, getPrimitiveVariableName(rule, Primitives.wrap(clazz)), getterName);
+        } else if (configuration.toStringSerializableClasses().contains(clazz)) {
+            addRecursiveStatement(methodBuilder, getToStringVariableName(rule), getterName);
+        } else if (clazz.isEnum()) {
+            addRecursiveStatement(methodBuilder, getEnumVariableName(rule), getterName);
+        } else if (getClassInformation(clazz) != null && getClassInformation(clazz).getSubClasses().isEmpty()) {
+            addRecursiveStatement(methodBuilder, getVariableName(configuration, rule, clazz), getterName);
+        } else {
+            addDefaultRecursiveStatement(methodBuilder, getterName);
+        }
+    }
+
+    private void addRecursiveStatement(MethodSpec.Builder methodBuilder, String methodName, String getterName) {
+        methodBuilder.addStatement("$L.$L().$L($L.$L(), $L, $L, $L, $L)", SET_PARAMETER, methodName, INTERFACE_METHOD, OBJECT_PARAMETER, getterName, EVAL_PARAMETER, CLOAK_PARAMETER, SET_PARAMETER, SERIALIZED_OBJECT);
+    }
+
+    private void addDefaultRecursiveStatement(MethodSpec.Builder methodBuilder, String getterName) {
+        methodBuilder.addStatement("$L.$L($L.$L(), $L, $L)", CLOAK_PARAMETER, ENTRY_METHOD, OBJECT_PARAMETER, getterName, EVAL_PARAMETER, SERIALIZED_OBJECT);
     }
 
     private int findField(String name, List<FieldMeta> fields) {

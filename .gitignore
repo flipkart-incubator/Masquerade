@@ -10,3 +10,4 @@ out/
 exportToHTML/
 .settings/
 masquerade-sample/src/main/java/org/
+masquerade-sample-cloak/src/main/java/org/

@@ -18,6 +18,7 @@ package com.flipkart.masquerade.test.actual;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.flipkart.masquerade.test.actual.subtypes.Base;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -39,6 +40,7 @@ public class Others {
     private URI uri;
     private int[] ints;
     private char[] chars;
+    private Base base;
 
     public boolean isIs() {
         return is;
@@ -126,5 +128,13 @@ public class Others {
 
     public void setCharacter(char character) {
         this.character = character;
+    }
+
+    public Base getBase() {
+        return base;
+    }
+
+    public void setBase(Base base) {
+        this.base = base;
     }
 }

@@ -17,7 +17,9 @@
 package com.flipkart.masquerade.test;
 
 import com.flipkart.masquerade.test.actual.Four;
+import com.flipkart.masquerade.test.actual.Others;
 import com.flipkart.masquerade.test.actual.Three;
+import com.flipkart.masquerade.test.actual.subtypes.Base;
 import com.flipkart.masquerade.test.actual.subtypes.SubOne;
 import com.flipkart.masquerade.test.actual.subtypes.SubTwo;
 import org.junit.jupiter.api.Assertions;
@@ -51,4 +53,54 @@ public class SubTypesTest extends BaseTest {
 
         assertEquals(mapper.writeValueAsString(subTwo), serializedTwo);
     }
+
+    @Test
+    public void testSubTypesWithAbstractDeclaration() throws Exception {
+        Base subOne = new SubOne();
+        subOne.setAbc("abc");
+        subOne.setDef("def");
+//        subOne.setFour(new Four(213.632, 42.12342));
+
+        String serialized = cloak.hide(subOne, defaultEval);
+        System.out.println(serialized);
+
+        assertEquals(mapper.writeValueAsString(subOne), serialized);
+
+        Base subTwo = new SubTwo();
+        subTwo.setAbc("abc");
+        subTwo.setDef("def");
+//        subTwo.setThree(new Three(764323, 42.12342));
+
+        String serializedTwo = cloak.hide(subTwo, defaultEval);
+        System.out.println(serializedTwo);
+
+        assertEquals(mapper.writeValueAsString(subTwo), serializedTwo);
+    }
+
+    @Test
+    public void testSubTypesInAnotherObject() throws Exception {
+        Others others = new Others();
+        SubOne subOne = new SubOne();
+        subOne.setAbc("abc");
+        subOne.setDef("def");
+        subOne.setFour(new Four(213.632, 42.12342));
+        others.setBase(subOne);
+
+        String serialized = cloak.hide(others, defaultEval);
+        System.out.println(serialized);
+
+        assertEquals(mapper.writeValueAsString(others), serialized);
+
+        SubTwo subTwo = new SubTwo();
+        subTwo.setAbc("abc");
+        subTwo.setDef("def");
+        subTwo.setThree(new Three(764323, 42.12342));
+        others.setBase(subTwo);
+
+        String serializedTwo = cloak.hide(others, defaultEval);
+        System.out.println(serializedTwo);
+
+        assertEquals(mapper.writeValueAsString(others), serializedTwo);
+    }
+
 }

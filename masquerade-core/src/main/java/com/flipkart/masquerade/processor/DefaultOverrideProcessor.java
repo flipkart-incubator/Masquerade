@@ -17,6 +17,7 @@
 package com.flipkart.masquerade.processor;
 
 import com.flipkart.masquerade.Configuration;
+import com.flipkart.masquerade.rule.Rule;
 import com.flipkart.masquerade.serialization.FieldMeta;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
@@ -87,14 +88,14 @@ public class DefaultOverrideProcessor extends OverrideProcessor {
     @Override
     protected boolean skipRecursiveCall(Field field) {
         /* Does not add the statement if the field is primitive, primitive wrapper, String or an Enum */
-        return !field.getType().isPrimitive() &&
-                !getWrapperTypes().contains(field.getType()) &&
-                !String.class.isAssignableFrom(field.getType()) &&
-                !field.getType().isEnum();
+        return field.getType().isPrimitive() ||
+                getWrapperTypes().contains(field.getType()) ||
+                String.class.isAssignableFrom(field.getType()) ||
+                field.getType().isEnum();
     }
 
     @Override
-    protected void recursiveStatement(MethodSpec.Builder methodBuilder, String getterName) {
+    protected void recursiveStatement(Rule rule, MethodSpec.Builder methodBuilder, Class<?> clazz, String getterName) {
         methodBuilder.addStatement("$L.$L($L.$L(), $L)", CLOAK_PARAMETER, ENTRY_METHOD, OBJECT_PARAMETER, getterName, EVAL_PARAMETER);
     }
 }

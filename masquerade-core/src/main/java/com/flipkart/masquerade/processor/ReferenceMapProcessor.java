@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.flipkart.masquerade.util.Helper.getRuleInterface;
+import static com.flipkart.masquerade.util.Strings.SET_PARAMETER;
 
 /**
  * Processor that adds and initializes a Map field mapping Class to Mask Object.
@@ -49,9 +50,28 @@ public class ReferenceMapProcessor {
      *
      * @param rule The rule for which the Map will be generated
      */
+    public void addMap(Rule rule, TypeSpec.Builder builder) {
+        ParameterizedTypeName mapType = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class), getRuleInterface(configuration, rule));
+        builder.addField(FieldSpec.builder(mapType, rule.getName(), Modifier.PRIVATE).initializer("new $T<>()", HashMap.class).build());
+        builder.addMethod(MethodSpec
+                .methodBuilder(mapGetterName(rule))
+                .returns(mapType)
+                .addStatement("return $L", rule.getName())
+                .build());
+    }
+
+    /**
+     * Adds a private field and references the repository map.
+     *
+     * @param rule The rule for which the Map will be generated
+     */
     public void addMap(Rule rule) {
         ParameterizedTypeName mapType = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class), getRuleInterface(configuration, rule));
-        cloakBuilder.addField(FieldSpec.builder(mapType, rule.getName(), Modifier.PRIVATE).initializer("new $T<>()", HashMap.class).build());
+        cloakBuilder.addField(FieldSpec.builder(mapType, rule.getName(), Modifier.PRIVATE).initializer("$L.$L()", SET_PARAMETER, mapGetterName(rule)).build());
+    }
+
+    private String mapGetterName(Rule rule) {
+        return "get" + rule.getName();
     }
 
 }

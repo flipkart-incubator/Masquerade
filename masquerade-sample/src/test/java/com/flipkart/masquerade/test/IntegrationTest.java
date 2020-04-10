@@ -18,8 +18,10 @@ package com.flipkart.masquerade.test;
 
 import com.flipkart.masquerade.test.actual.Fallback;
 import com.flipkart.masquerade.test.actual.Others;
+import com.flipkart.masquerade.test.actual.others.Sample;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,5 +62,15 @@ public class IntegrationTest extends BaseTest {
         System.out.println(serialized);
 
         assertEquals(mapper.writeValueAsString(fallback), serialized);
+    }
+
+    @Test
+    public void testSamples() throws Exception {
+        Sample sample = new Sample(new BigInteger("1238123"));
+
+        String serialized = cloak.hide(sample, defaultEval);
+        System.out.println(serialized);
+
+        assertEquals(mapper.writeValueAsString(sample), serialized);
     }
 }

@@ -26,15 +26,18 @@ public class Strings {
 
     public static final String ENTRY_CLASS = "Cloak";
     public static final String ENTRY_METHOD = "hide";
+    public static final String SET_CLASS = "Trunk";
 
     public static final String INTERFACE_METHOD = INTERFACE_SUFFIX.toLowerCase();
     public static final String OBJECT_PARAMETER = Object.class.getSimpleName().toLowerCase();
     public static final String EVAL_PARAMETER = "eval";
     public static final String CLOAK_PARAMETER = ENTRY_CLASS.toLowerCase();
+    public static final String SET_PARAMETER = SET_CLASS.toLowerCase();
 
     public static final String SERIALIZED_OBJECT = "serialized";
 
     public static final String QUOTES = "\"";
+    public static final String NULL_STRING = "_null";
 
     public static final String DEBUG_LIST = "missingClasses";
     public static final String FALLBACK_VARIABLE = "fallback";

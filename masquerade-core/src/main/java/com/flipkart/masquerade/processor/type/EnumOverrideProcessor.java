@@ -23,8 +23,7 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
 import static com.flipkart.masquerade.util.Helper.getEnumImplementationName;
-import static com.flipkart.masquerade.util.Strings.OBJECT_PARAMETER;
-import static com.flipkart.masquerade.util.Strings.QUOTES;
+import static com.flipkart.masquerade.util.Strings.*;
 
 /**
  * Created by shrey.garg on 09/07/17.
@@ -47,7 +46,7 @@ public class EnumOverrideProcessor extends BaseOverrideProcessor {
         MethodSpec.Builder methodBuilder = generateOverrideMethod(rule, Object.class);
 
         if (configuration.isNativeSerializationEnabled()) {
-            methodBuilder.addStatement("return $S + String.valueOf($L) + $S", QUOTES, OBJECT_PARAMETER, QUOTES);
+            methodBuilder.addStatement("$L.append($S + String.valueOf($L) + $S)", SERIALIZED_OBJECT, QUOTES, OBJECT_PARAMETER, QUOTES);
         }
 
         return generateImplementationType(rule, Object.class, implName, methodBuilder.build());

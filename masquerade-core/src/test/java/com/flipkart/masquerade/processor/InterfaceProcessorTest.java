@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.flipkart.masquerade.util.Helper.getEntryClass;
+import static com.flipkart.masquerade.util.Helper.getRepositoryClass;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -48,10 +49,11 @@ public class InterfaceProcessorTest {
         assertEquals(1, interfaceSpec.methodSpecs.size(), "The interface should have only one method");
 
         MethodSpec methodSpec = interfaceSpec.methodSpecs.get(0);
-        assertEquals(3, methodSpec.parameters.size(), "The method should have 3 parameters");
+        assertEquals(4, methodSpec.parameters.size(), "The method should have 3 parameters");
         assertEquals("T", methodSpec.parameters.get(0).type.toString(), "First parameter is the generic variable");
         assertEquals(rules.get(0).getEvaluatorClass().getName(), methodSpec.parameters.get(1).type.toString(), "Second parameter is the Rule Evaluator");
         assertEquals(getEntryClass(configuration), methodSpec.parameters.get(2).type, "Third parameter is the entry class");
+        assertEquals(getRepositoryClass(configuration), methodSpec.parameters.get(3).type, "Fourth parameter is the repository class");
     }
 
 }

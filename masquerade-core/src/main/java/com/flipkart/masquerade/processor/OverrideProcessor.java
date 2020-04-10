@@ -21,7 +21,9 @@ import com.flipkart.masquerade.Configuration;
 import com.flipkart.masquerade.annotation.IgnoreCloak;
 import com.flipkart.masquerade.rule.*;
 import com.flipkart.masquerade.serialization.FieldMeta;
+import com.flipkart.masquerade.util.EntryType;
 import com.flipkart.masquerade.util.FieldDescriptor;
+import com.flipkart.masquerade.util.RepositoryEntry;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
@@ -31,7 +33,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -56,10 +57,10 @@ public abstract class OverrideProcessor extends BaseOverrideProcessor {
     /**
      * @param rule The rule which is being processed
      * @param clazz The Class for which the Rule Mask interface will be implemented
-     * @param initializer The Initialization block in which the map entry for the implementation will be added
+     * @param repositoryEntries The Initialization block entries for which the map entry for the implementation will be added
      * @return A fully constructed TypeSpec object for the implementation
      */
-    public Optional<TypeSpec> createOverride(Rule rule, Class<?> clazz, CodeBlock.Builder initializer) {
+    public Optional<TypeSpec> createOverride(Rule rule, Class<?> clazz, List<RepositoryEntry> repositoryEntries) {
         MethodSpec.Builder methodBuilder = generateOverrideMethod(rule, clazz);
         declareInitializeVariables(methodBuilder);
 
@@ -81,14 +82,16 @@ public abstract class OverrideProcessor extends BaseOverrideProcessor {
                 Class<? extends Annotation> annotationClass = rule.getAnnotationClass();
                 Annotation[] annotations = field.getField().getAnnotationsByType(annotationClass);
                 if (annotations != null && annotations.length != 0) {
+                    List<CodeBlock> operationBlocks = new ArrayList<>();
                     for (Annotation annotation : annotations) {
-                        constructOperation(rule, annotationClass, annotation, methodBuilder, field.getField(), clazz);
+                        operationBlocks.add(constructOperation(rule, annotationClass, annotation));
                     }
+                    constructFinalOperation(methodBuilder, field.getField(), clazz, operationBlocks);
                 }
             }
 
             handleFieldKeys(clazz, field, methodBuilder);
-            addRecursiveStatement(rule, clazz, field.getField(), methodBuilder, initializer);
+            addRecursiveStatement(rule, clazz, field.getField(), methodBuilder, repositoryEntries);
             handleFieldValues(field, methodBuilder);
         }
 
@@ -96,12 +99,13 @@ public abstract class OverrideProcessor extends BaseOverrideProcessor {
 
         MethodSpec methodSpec = methodBuilder.build();
         if (methodSpec.code.isEmpty()) {
-            addNoOpInitializerCode(rule, clazz, initializer);
+            addNoOpInitializerCode(rule, clazz, repositoryEntries);
             return Optional.empty();
         }
 
+        addInitializerCode(rule, clazz, repositoryEntries);
+
         String implName = getImplementationName(rule, clazz);
-        addInitializerCode(rule, clazz, initializer, implName);
         return Optional.ofNullable(generateImplementationType(rule, clazz, implName, methodSpec));
     }
 
@@ -110,7 +114,7 @@ public abstract class OverrideProcessor extends BaseOverrideProcessor {
      * @param field Current Field
      * @param methodBuilder Current method builder
      */
-    private void addRecursiveStatement(Rule rule, Class<?> clazz, Field field, MethodSpec.Builder methodBuilder, CodeBlock.Builder initializer) {
+    private void addRecursiveStatement(Rule rule, Class<?> clazz, Field field, MethodSpec.Builder methodBuilder, List<RepositoryEntry> repositoryEntries) {
         if (!skipRecursiveCall(field)) {
             String getter = getGetterName(field.getName(), isBoolean(field.getType()), field.getType().isPrimitive());
             try {
@@ -120,39 +124,51 @@ public abstract class OverrideProcessor extends BaseOverrideProcessor {
             }
 
             if (field.getType().isEnum()) {
-                addEnumInitializerCode(rule, field.getType(), initializer);
+                addEnumInitializerCode(rule, field.getType(), repositoryEntries);
             }
 
-            recursiveStatement(methodBuilder, getter);
+            recursiveStatement(rule, methodBuilder, field.getType(), getter);
         }
     }
 
-    private void addNoOpInitializerCode(Rule rule, Class<?> clazz, CodeBlock.Builder initializer) {
-        initializer.addStatement("$L.put($S, $L)", rule.getName(), clazz.getName(), getNoOpVariableName(rule));
+    private void addNoOpInitializerCode(Rule rule, Class<?> clazz, List<RepositoryEntry> repositoryEntries) {
+        repositoryEntries.add(new RepositoryEntry(rule, clazz, EntryType.NoOP));
     }
 
-    private void addEnumInitializerCode(Rule rule, Class<?> clazz, CodeBlock.Builder initializer) {
-        initializer.addStatement("$L.put($S, $L)", rule.getName(), clazz.getName(), getEnumVariableName(rule));
+    private void addEnumInitializerCode(Rule rule, Class<?> clazz, List<RepositoryEntry> repositoryEntries) {
+        repositoryEntries.add(new RepositoryEntry(rule, clazz, EntryType.ENUM));
     }
 
-    private void addInitializerCode(Rule rule, Class<?> clazz, CodeBlock.Builder initializer, String implName) {
-        ClassName cloakName = ClassName.get(getImplementationPackage(configuration, clazz), implName);
-        initializer.addStatement("$L.put($S, new $T())", rule.getName(), clazz.getName(), cloakName);
+    private void addInitializerCode(Rule rule, Class<?> clazz, List<RepositoryEntry> repositoryEntries) {
+        repositoryEntries.add(new RepositoryEntry(rule, clazz, EntryType.NEW));
     }
 
-    private void constructOperation(Rule rule, Class<? extends Annotation> annotationClass, Annotation annotation, MethodSpec.Builder builder, Field field, Class<?> clazz) {
+    private CodeBlock constructOperation(Rule rule, Class<? extends Annotation> annotationClass, Annotation annotation) {
         List<Object> operands = new ArrayList<>();
 
         CompositeRule baseRule = rule.getValueRule();
         String operation = constructBasicOperation(baseRule, baseRule.getConjunction(), annotationClass, annotation, operands);
 
-        String setter = getSetterName(field.getName(), isBoolean(field.getType()));
-        Arrays.stream(clazz.getMethods())
-                .filter(method -> method.getName().equals(setter))
-                .findFirst()
-                .orElseThrow(() -> new UnsupportedOperationException("A cloak-able class should have a setter defined for all fields. Class: " + clazz.getName() + " Field: " + field.getName()));
+        return CodeBlock.of(operation, operands.toArray());
+    }
 
-        builder.beginControlFlow("if (" + operation + ")", operands.toArray());
+    private void constructFinalOperation(MethodSpec.Builder builder, Field field, Class<?> clazz, List<CodeBlock> operationBlocks) {
+        String setter = getSetterName(field.getName(), isBoolean(field.getType()));
+        try {
+            clazz.getMethod(setter, field.getType());
+        } catch (NoSuchMethodException e) {
+            throw new UnsupportedOperationException("A cloak-able class should have a setter defined for all fields. Class: " + clazz.getName() + " Field: " + field.getName());
+        }
+
+        StringBuilder operationBuilder = new StringBuilder();
+        for (int i = 0; i < operationBlocks.size(); i++) {
+            operationBuilder.append("($L)");
+            if (i != operationBlocks.size() - 1) {
+                operationBuilder.append(" || ");
+            }
+        }
+
+        builder.beginControlFlow("if (" + operationBuilder.toString() + ")", operationBlocks.toArray());
         builder.addStatement("$L.$L(null)", OBJECT_PARAMETER, setter);
         builder.endControlFlow();
     }
@@ -249,5 +265,5 @@ public abstract class OverrideProcessor extends BaseOverrideProcessor {
 
     protected abstract boolean skipRecursiveCall(Field field);
 
-    protected abstract void recursiveStatement(MethodSpec.Builder methodBuilder, String getterName);
+    protected abstract void recursiveStatement(Rule rule, MethodSpec.Builder methodBuilder, Class<?> clazz, String getterName);
 }

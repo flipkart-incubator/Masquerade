@@ -18,10 +18,12 @@ package com.flipkart.masquerade.processor.type;
 
 import com.flipkart.masquerade.Configuration;
 import com.flipkart.masquerade.rule.Rule;
-import com.squareup.javapoet.CodeBlock;
+import com.flipkart.masquerade.util.EntryType;
+import com.flipkart.masquerade.util.RepositoryEntry;
 import com.squareup.javapoet.TypeSpec;
 
-import static com.flipkart.masquerade.util.Helper.getToStringVariableName;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by shrey.garg on 16/07/17.
@@ -42,9 +44,11 @@ public class ToStringInitializationProcessor {
     /**
      * @param rule The rule to generate the entries for
      */
-    public void generateToStringEntries(Rule rule, CodeBlock.Builder initializer) {
-        for (String toStringSerializable : configuration.toStringSerializableClasses()) {
-            initializer.addStatement("$L.put($S, $L)", rule.getName(), toStringSerializable, getToStringVariableName(rule));
+    public List<RepositoryEntry> generateToStringEntries(Rule rule) {
+        List<RepositoryEntry> repositoryEntries = new ArrayList<>();
+        for (Class<?> toStringSerializable : configuration.toStringSerializableClasses()) {
+            repositoryEntries.add(new RepositoryEntry(rule, toStringSerializable, EntryType.OTHERS));
         }
+        return repositoryEntries;
     }
 }

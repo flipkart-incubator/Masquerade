@@ -16,10 +16,6 @@
 
 package com.flipkart.masquerade.test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.flipkart.masquerade.Configuration;
 import com.flipkart.masquerade.rule.*;
 import com.flipkart.masquerade.serialization.SerializationProperty;

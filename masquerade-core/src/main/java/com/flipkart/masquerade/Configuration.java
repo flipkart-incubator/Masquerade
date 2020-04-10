@@ -20,6 +20,9 @@ import com.flipkart.masquerade.rule.Rule;
 import com.flipkart.masquerade.serialization.SerializationProperty;
 import com.flipkart.masquerade.util.Fallback;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -29,7 +32,8 @@ import java.util.Set;
  * Created by shrey.garg on 25/04/17.
  */
 public interface Configuration {
-    Set<String> toStringSerializableClasses = new HashSet<>(Arrays.asList("java.net.URI"));
+    Set<Class<?>> toStringSerializableClasses = new HashSet<>(Arrays.asList(URI.class));
+    Set<Class<?>> numericalSerializableClasses = new HashSet<>(Arrays.asList(BigInteger.class, BigDecimal.class));
 
     List<String> getPackagesToScan();
     Set<Rule> getRules();
@@ -37,8 +41,11 @@ public interface Configuration {
     boolean isNativeSerializationEnabled();
     Set<SerializationProperty> serializationProperties();
     boolean isDebugMode();
-    default Set<String> toStringSerializableClasses() {
+    default Set<Class<?>> toStringSerializableClasses() {
         return toStringSerializableClasses;
+    }
+    default Set<Class<?>> numericalSerializableClasses() {
+        return numericalSerializableClasses;
     }
     default Fallback fallback() {
         return null;

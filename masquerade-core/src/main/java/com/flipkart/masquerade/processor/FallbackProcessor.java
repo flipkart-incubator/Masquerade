@@ -52,6 +52,6 @@ public class FallbackProcessor {
                 .initializer("new $T()", configuration.fallback().getClass()).build());
 
         objectMaskBuilder.nextControlFlow("else");
-        objectMaskBuilder.addStatement("return $L.$L($L)", FALLBACK_VARIABLE, FALLBACK_METHOD, OBJECT_PARAMETER);
+        objectMaskBuilder.addStatement("$L.append($L.$L($L))", SERIALIZED_OBJECT, FALLBACK_VARIABLE, FALLBACK_METHOD, OBJECT_PARAMETER);
     }
 }

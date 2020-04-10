@@ -17,13 +17,12 @@
 package com.flipkart.masquerade;
 
 import com.flipkart.masquerade.processor.*;
-import com.flipkart.masquerade.processor.type.NoOpInitializationProcessor;
-import com.flipkart.masquerade.processor.type.ToStringInitializationProcessor;
 import com.flipkart.masquerade.rule.Rule;
+import com.flipkart.masquerade.util.EntryType;
+import com.flipkart.masquerade.util.RepositoryEntry;
 import com.flipkart.masquerade.util.TypeSpecContainer;
 import com.google.common.reflect.ClassPath;
 import com.squareup.javapoet.AnnotationSpec;
-import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 
@@ -64,40 +63,38 @@ public class Masquerade {
         TypeSpec.Builder builder = TypeSpec.classBuilder(ENTRY_CLASS);
         builder.addModifiers(Modifier.PUBLIC);
 
-        /* The initialization block which initializes a Map for each Rule and populates it with all the Masks relevant to that Rule */
-        CodeBlock.Builder staticCode = CodeBlock.builder();
-
         RuleProcessor ruleProcessor = new RuleProcessor(configuration, builder);
         OverrideProcessor overrideProcessor = configuration.isNativeSerializationEnabled() ? new SerializationOverrideProcessor(configuration, builder) : new DefaultOverrideProcessor(configuration, builder);
-        NoOpInitializationProcessor noOpInitializationProcessor = new NoOpInitializationProcessor(configuration, builder);
-        ToStringInitializationProcessor toStringInitializationProcessor = new ToStringInitializationProcessor(configuration, builder);
+
+        RepositoryProcessor repositoryProcessor = new RepositoryProcessor(configuration, builder);
+        repositoryProcessor.createReference();
 
         DebugProcessor debugProcessor = new DebugProcessor(configuration, builder);
         debugProcessor.addGetter();
 
-        configuration.getRules().forEach(rule -> noOpInitializationProcessor.generateNoOpEntries(rule, staticCode));
-        configuration.getRules().forEach(rule -> toStringInitializationProcessor.generateToStringEntries(rule, staticCode));
         specs.addAll(ruleProcessor.generateRuleTypeSpecs());
 
-        for (ClassPath.ClassInfo info : scannedClasses) {
-            Class<?> clazz = Class.forName(info.getName(), true, classLoader);
-
+        List<RepositoryEntry> repositoryEntries = new ArrayList<>();
+        mapClasses(scannedClasses, classLoader);
+        for (Class<?> clazz : getClasses()) {
             /* Skip processing if the class is an Enum, Interface, Abstract or not a public class */
-            if (clazz.isEnum() || clazz.isInterface() || isAbstract(clazz) || !isPublic(clazz)) {
+            if (clazz.isEnum() || clazz.isInterface() || getClassInformation(clazz).isAbstract() || !getClassInformation(clazz).isPublic()) {
+                if (clazz.isEnum()) {
+                    configuration.getRules().forEach(rule -> repositoryEntries.add(new RepositoryEntry(rule, clazz, EntryType.ENUM)));
+                }
                 continue;
             }
 
             for (Rule rule : configuration.getRules()) {
                 /* Generate an implementation class for the Mask interface created earlier */
                 /* The override might be absent in case of terminal classes */
-                overrideProcessor.createOverride(rule, clazz, staticCode)
+                overrideProcessor.createOverride(rule, clazz, repositoryEntries)
                         .ifPresent(typeSpec -> specs.add(new TypeSpecContainer(getImplementationPackage(configuration, clazz), typeSpec)));
             }
         }
 
-        builder.addInitializerBlock(staticCode.build());
-
         specs.add(new TypeSpecContainer(configuration.getCloakPackage(), builder.build()));
+        specs.add(new TypeSpecContainer(configuration.getCloakPackage(), repositoryProcessor.createRepository(repositoryEntries)));
 
         for (TypeSpecContainer container : specs) {
             TypeSpec.Builder typeBuilder = container.getSpec().toBuilder().addAnnotation(AnnotationSpec.builder(Generated.class).addMember("value", "$S", "com.flipkart.masquerade.Masquerade").build());

@@ -15,6 +15,7 @@
         <module>masquerade-core</module>
         <module>masquerade-maven-plugin</module>
         <module>masquerade-sample</module>
+        <!--<module>masquerade-sample-cloak</module>-->
     </modules>
 
     <developers>

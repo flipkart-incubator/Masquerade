@@ -17,9 +17,17 @@
 package com.flipkart.masquerade.processor;
 
 import com.flipkart.masquerade.Configuration;
+import com.flipkart.masquerade.rule.Rule;
+import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
+import java.util.Collection;
+import java.util.Map;
+
+import static com.flipkart.masquerade.util.Helper.getCollectionVariableName;
+import static com.flipkart.masquerade.util.Helper.getMapVariableName;
+import static com.flipkart.masquerade.util.Helper.getObjectArrayVariableName;
 import static com.flipkart.masquerade.util.Strings.*;
 
 /**
@@ -41,32 +49,26 @@ public class DefaultRuleObjectProcessor extends RuleObjectProcessor {
 
     @Override
     protected void handleRegisteredClasses(MethodSpec.Builder objectMaskBuilder) {
-        objectMaskBuilder.addStatement("$L.$L($L, $L, this)", MASKER_VARIABLE, INTERFACE_METHOD, OBJECT_PARAMETER, EVAL_PARAMETER);
+        objectMaskBuilder.addStatement("$L.$L($L, $L, this, $L)", MASKER_VARIABLE, INTERFACE_METHOD, OBJECT_PARAMETER, EVAL_PARAMETER, SET_PARAMETER);
     }
 
     @Override
-    protected void handleMaps(MethodSpec.Builder objectMaskBuilder) {
-        objectMaskBuilder.addStatement("this.$L(((Map) $L).values(), $L)", ENTRY_METHOD, OBJECT_PARAMETER, EVAL_PARAMETER);
+    protected void handleMaps(Rule rule, MethodSpec.Builder objectMaskBuilder) {
+        objectMaskBuilder.addStatement("$L.$L().$L(($T) $L, $L, this, $L)", SET_PARAMETER, getMapVariableName(rule), INTERFACE_METHOD, Map.class, OBJECT_PARAMETER, EVAL_PARAMETER, SET_PARAMETER);
     }
 
     @Override
-    protected void handleCollections(MethodSpec.Builder objectMaskBuilder) {
-        /* And recursively call this entry method for each object */
-        objectMaskBuilder.beginControlFlow("for (Object o : ((Collection) $L))", OBJECT_PARAMETER);
-        objectMaskBuilder.addStatement("this.$L(o, $L)", ENTRY_METHOD, EVAL_PARAMETER);
-        objectMaskBuilder.endControlFlow();
+    protected void handleCollections(Rule rule, MethodSpec.Builder objectMaskBuilder) {
+        objectMaskBuilder.addStatement("$L.$L().$L(($T) $L, $L, this, $L)", SET_PARAMETER, getCollectionVariableName(rule), INTERFACE_METHOD, Collection.class, OBJECT_PARAMETER, EVAL_PARAMETER, SET_PARAMETER);
     }
 
     @Override
-    protected void handleObjectArrays(MethodSpec.Builder objectMaskBuilder) {
-        objectMaskBuilder.beginControlFlow("for (Object o : ((Object[]) $L))", OBJECT_PARAMETER);
-        /* And recursively call this entry method for each object */
-        objectMaskBuilder.addStatement("this.$L(o, $L)", ENTRY_METHOD, EVAL_PARAMETER);
-        objectMaskBuilder.endControlFlow();
+    protected void handleObjectArrays(Rule rule, MethodSpec.Builder objectMaskBuilder) {
+        objectMaskBuilder.addStatement("$L.$L().$L(($T) $L, $L, this, $L)", SET_PARAMETER, getObjectArrayVariableName(rule), INTERFACE_METHOD, ArrayTypeName.of(Object.class), OBJECT_PARAMETER, EVAL_PARAMETER, SET_PARAMETER);
     }
 
     @Override
-    protected void handlePrimitiveArrays(MethodSpec.Builder objectMaskBuilder) {
+    protected void handlePrimitiveArrays(Rule rule, MethodSpec.Builder objectMaskBuilder) {
         // Nothing needs to be done in case of primitive arrays in this case
     }
 

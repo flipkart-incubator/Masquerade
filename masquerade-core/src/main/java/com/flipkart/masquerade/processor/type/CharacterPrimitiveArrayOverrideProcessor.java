@@ -19,21 +19,27 @@ package com.flipkart.masquerade.processor.type;
 import com.flipkart.masquerade.Configuration;
 import com.flipkart.masquerade.processor.BaseOverrideProcessor;
 import com.flipkart.masquerade.rule.Rule;
+import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
-import static com.flipkart.masquerade.util.Helper.getToStringImplementationName;
-import static com.flipkart.masquerade.util.Strings.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.flipkart.masquerade.util.Helper.getPrimitiveArrayImplementationName;
+import static com.flipkart.masquerade.util.Strings.OBJECT_PARAMETER;
+import static com.flipkart.masquerade.util.Strings.QUOTES;
+import static com.flipkart.masquerade.util.Strings.SERIALIZED_OBJECT;
 
 /**
- * Created by shrey.garg on 16/07/17.
+ * Created by shrey.garg on 24/07/17.
  */
-public class ToStringProcessor extends BaseOverrideProcessor {
+public class CharacterPrimitiveArrayOverrideProcessor extends BaseOverrideProcessor {
     /**
      * @param configuration Configuration for the current processing cycle
      * @param cloakBuilder  Entry class under construction for the cycle
      */
-    public ToStringProcessor(Configuration configuration, TypeSpec.Builder cloakBuilder) {
+    public CharacterPrimitiveArrayOverrideProcessor(Configuration configuration, TypeSpec.Builder cloakBuilder) {
         super(configuration, cloakBuilder);
     }
 
@@ -42,13 +48,14 @@ public class ToStringProcessor extends BaseOverrideProcessor {
      * @return A fully constructed TypeSpec object for the enum implementation
      */
     public TypeSpec createOverride(Rule rule) {
-        String implName = getToStringImplementationName(rule);
-        MethodSpec.Builder methodBuilder = generateOverrideMethod(rule, Object.class);
+        List<TypeSpec> typeSpecs = new ArrayList<>();
+        String implName = getPrimitiveArrayImplementationName(rule, Character.TYPE);
+        MethodSpec.Builder methodBuilder = generateOverrideMethod(rule, ArrayTypeName.of(Character.TYPE));
 
         if (configuration.isNativeSerializationEnabled()) {
-            methodBuilder.addStatement("$L.append($S + $L.toString() + $S)", SERIALIZED_OBJECT, QUOTES, OBJECT_PARAMETER, QUOTES);
+            methodBuilder.addStatement("$L.append($S + new $T(($T[]) $L) + $S)", SERIALIZED_OBJECT, QUOTES, String.class, Character.TYPE, OBJECT_PARAMETER, QUOTES);
         }
 
-        return generateImplementationType(rule, Object.class, implName, methodBuilder.build());
+        return generateImplementationType(rule, ArrayTypeName.of(Character.TYPE), implName, methodBuilder.build());
     }
 }

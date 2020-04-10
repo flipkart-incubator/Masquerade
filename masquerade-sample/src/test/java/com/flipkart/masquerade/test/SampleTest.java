@@ -257,6 +257,13 @@ public class SampleTest extends BaseTest {
         others.setProductSuffix("something");
         others.setIsNotBoolean("not a boolean");
         others.setArrayList(new ArrayList<>());
+        others.setProductSuffix("<p>\n" +
+                "\t\t\t\t\t\t\t\tMoto brings to you the E4 Plus - a smartphone that & rsquo;s powered by a long - lasting 5000 mAh battery.Packed with a 13 MP rear camera and a 5 MP front camera,\n" +
+                "\t\t\t\t\t\t\t\tthe Moto E4 Plus helps you take flaunt - worthy photos.It runs on Android 7.1 Nougat,\n" +
+                "\t\t\t\t\t\t\t\tand \\s features Google Assistant\n" +
+                "\t\t\t\t\t\t\t\tfor a seamless user experience.The 13.97 cm(5.5) HD display of this smartphone breathes life into all your visuals.Its fingerprint scanner not only helps you unlock this smartphone quickly,\n" +
+                "\t\t\t\t\t\t\t\tbut also keeps your private data truly private\\.With a 1.3 GHz quad - core processor and 4 G support,\n" +
+                "\t\t\t\t\t\t\t\tthis dual - SIM smartphone offers a powerful performance.Adding further to your convenience is the Moto Display feature that helps you check your notifications and updates quickly even when the phone is locked. < /p>");
 
         String serialized = cloak.hide(others, defaultEval);
 

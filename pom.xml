@@ -27,7 +27,7 @@
     </developers>
 
     <properties>
-        <jackson.version>2.8.7</jackson.version>
+        <jackson.version>2.10.3</jackson.version>
     </properties>
 
     <dependencyManagement>

@@ -117,11 +117,9 @@ public class SerializationOverrideProcessor extends OverrideProcessor {
     @Override
     protected void handleFieldKeys(Class<?> clazz, FieldMeta field, MethodSpec.Builder methodBuilder) {
         resolveInclusionLevel(clazz, field);
-        if (field.getInclusionLevel() != JsonInclude.Include.ALWAYS) {
-            CodeBlock inclusionCondition = constructInclusionCondition(field);
-            if (field.isMaskable()) {
-                methodBuilder.beginControlFlow("$L", inclusionCondition);
-            }
+        CodeBlock inclusionCondition = constructInclusionCondition(field);
+        if (field.isMaskable()) {
+            methodBuilder.beginControlFlow("$L", inclusionCondition);
         }
         methodBuilder.addStatement("$L.append($S)", SERIALIZED_OBJECT, QUOTES + field.getSerializableName() + QUOTES + ":");
     }
@@ -129,7 +127,7 @@ public class SerializationOverrideProcessor extends OverrideProcessor {
     @Override
     protected void handleFieldValues(FieldMeta field, MethodSpec.Builder methodBuilder) {
         methodBuilder.addStatement("$L.append($S)", SERIALIZED_OBJECT, ",");
-        if (field.getInclusionLevel() != JsonInclude.Include.ALWAYS && field.isMaskable()) {
+        if (field.isMaskable()) {
             methodBuilder.endControlFlow();
         }
     }
@@ -257,8 +255,7 @@ public class SerializationOverrideProcessor extends OverrideProcessor {
                         return CodeBlock.of("if ($L.$L() != null && !$L.$L().isEmpty())", OBJECT_PARAMETER, getterName, OBJECT_PARAMETER, getterName);
                     }
                 default:
-                    fieldMeta.setMaskable(false);
-                    return null;
+                    return CodeBlock.of("if ($L.$L() != null || !$L.$L())", OBJECT_PARAMETER, getterName, EVAL_PARAMETER, "isDefaultNonNullInclusion");
             }
         }
     }

@@ -23,6 +23,7 @@ public class Eval {
     public Platform platform;
     private int version;
     private String client;
+    private boolean defaultNonNullInclusion;
 
     public Eval() {
     }
@@ -46,5 +47,17 @@ public class Eval {
 
     public void setClient(String client) {
         this.client = client;
+    }
+
+    public boolean isDefaultNonNullInclusion() {
+        return defaultNonNullInclusion;
+    }
+
+    public boolean isNullKeySupported() {
+        return defaultNonNullInclusion;
+    }
+
+    public void setDefaultNonNullInclusion(boolean defaultNonNullInclusion) {
+        this.defaultNonNullInclusion = defaultNonNullInclusion;
     }
 }

@@ -50,4 +50,11 @@ public interface Configuration {
     default Fallback fallback() {
         return null;
     }
+    default int maxStatementsInMethod() {
+        return 1000;
+    }
+
+    default String methodPrefixForChainedMethods(){
+        return "chainedMethod";
+    }
 }
